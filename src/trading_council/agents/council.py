@@ -1,5 +1,5 @@
 from agents import Agent
-from trading_council.agents.models import ResearchSession, CouncilDiscussion
+from trading_council.agents.models import CouncilDiscussion
 
 
 council = Agent(

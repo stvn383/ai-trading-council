@@ -3,9 +3,9 @@ import asyncio
 from dotenv import load_dotenv
 from agents import Runner
 
-from trading_council.agents.ava import ava
-from trading_council.agents.betsy import betsy
-from trading_council.agents.camila import camila
+from trading_council.agents.ava import ava, ava_reviewer
+from trading_council.agents.betsy import betsy, betsy_reviewer
+from trading_council.agents.camila import camila, camila_reviewer
 from trading_council.agents.models import ResearchSession
 from trading_council.agents.council import council
 
@@ -105,6 +105,90 @@ async def main():
     for point in decision.points_for_camila:
         print(f"- {point}")
 
+    ava_revision_prompt = f"""
+    Review your original investment research after receiving feedback from
+    the council.
+
+    Your original research:
+    {session.ava.model_dump_json(indent=2)}
+
+    The council's feedback specifically for you:
+    {decision.points_for_ava}
+
+    Reconsider your five stock selections.
+
+    You may keep your original portfolio if you still believe it is correct.
+    You may replace stocks if the council's criticism has changed your
+    conviction.
+
+    You must finish with exactly five stocks.
+
+    Clearly explain which stocks you changed, if any, and why.
+    """
+
+    betsy_revision_prompt = f"""
+    Review your original investment research after receiving feedback from
+    the council.
+
+    Your original research:
+    {session.betsy.model_dump_json(indent=2)}
+
+    The council's feedback specifically for you:
+    {decision.points_for_betsy}
+
+    Reconsider your five stock selections.
+
+    You may keep your original portfolio if you still believe it is correct.
+    You may replace stocks if the council's criticism has changed your
+    conviction.
+
+    You must finish with exactly five stocks.
+
+    Clearly explain which stocks you changed, if any, and why.
+    """
+
+    camila_revision_prompt = f"""
+    Review your original investment research after receiving feedback from
+    the council.
+
+    Your original research:
+    {session.camila.model_dump_json(indent=2)}
+
+    The council's feedback specifically for you:
+    {decision.points_for_camila}
+
+    Reconsider your five stock selections.
+
+    You may keep your original portfolio if you still believe it is correct.
+    You may replace stocks if the council's criticism has changed your
+    conviction.
+
+    You must finish with exactly five stocks.
+
+    Clearly explain which stocks you changed, if any, and why.
+    """
+
+    ava_revision_result, betsy_revision_result, camila_revision_result = await asyncio.gather(
+        Runner.run(ava_reviewer, ava_revision_prompt),
+        Runner.run(betsy_reviewer, betsy_revision_prompt),
+        Runner.run(camila_reviewer, camila_revision_prompt),
+    )
+
+    ava_final = ava_revision_result.final_output
+    betsy_final = betsy_revision_result.final_output
+    camila_final = camila_revision_result.final_output
+
+    print("\n\nAVA FINAL PORTFOLIO")
+    print("=" * 60)
+    print(ava_final.model_dump_json(indent=2))
+
+    print("\n\nBETSY FINAL PORTFOLIO")
+    print("=" * 60)
+    print(betsy_final.model_dump_json(indent=2))
+
+    print("\n\nCAMILA FINAL PORTFOLIO")
+    print("=" * 60)
+    print(camila_final.model_dump_json(indent=2))
 
 if __name__ == "__main__":
     asyncio.run(main())
