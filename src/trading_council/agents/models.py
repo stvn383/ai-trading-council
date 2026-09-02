@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 #Structured format for stock pick
 class StockIdea(BaseModel):
@@ -42,3 +42,26 @@ class FinalPortfolio(BaseModel):
     changed: bool = Field(description="Whether the agent changed any of its stock selections after the council discussion")
     changes: list[str] = Field(description="Specific changes made after the council discussion. Empty if no changes were made.")
     final_thesis: str = Field(description="Overall reasoning behind the final portfolio")
+
+class PortfolioPosition(BaseModel):
+    ticker: str = Field(description="Stock ticker symbol")
+    weight: float = Field(
+        ge=0,
+        le=1,
+        description="Portfolio weight as a decimal between 0 and 1"
+    )
+    reasoning: str = Field(description="Why the council assigned this portfolio weight")
+
+class FinalCouncilDecision(BaseModel):
+    discussion: str = Field(description="Final council assessment of the three revised portfolios")
+    positions: list[PortfolioPosition] = Field(
+        min_length=5,
+        max_length=10,
+        description="Final stocks selected for the paper portfolio"
+    )
+    @model_validator(mode="after")
+    def validate_weights(self):
+        total_weight = sum(position.weight for position in self.positions)
+        if  abs(total_weight - 1.0) > 0.001:
+            f"Portfolio weights must sum to 1.0, got {total_weight:.3f}"
+        return self

@@ -1,5 +1,5 @@
 from agents import Agent
-from trading_council.agents.models import CouncilDiscussion
+from trading_council.agents.models import CouncilDiscussion, FinalCouncilDecision
 
 
 council = Agent(
@@ -33,4 +33,41 @@ council = Agent(
     own recommendations.
     """,
     output_type=CouncilDiscussion,
+)
+
+
+final_council = Agent(
+    name="Final Investment Council",
+    instructions="""
+    You are the final decision-making investment council.
+
+    Three analysts have independently researched stocks, discussed each
+    other's ideas, and then revised their portfolios based on the council's
+    criticism.
+
+    Your job is to evaluate their FINAL portfolios and select the stocks
+    that should make up the paper trading portfolio.
+
+    Consider:
+    - Agreement across analysts
+    - Quality of the underlying businesses
+    - Growth potential
+    - Valuation
+    - Risk
+    - Sector diversification
+    - Correlation between holdings
+    - The different investment philosophies of the analysts
+    - Whether a stock's inclusion adds something meaningfully different
+      to the portfolio
+
+    Do not simply choose the stocks that appear most frequently.
+
+    You may select between five and ten stocks.
+
+    The final portfolio should balance attractive returns with reasonable
+    diversification and risk management.
+
+    Provide concise reasoning for every selected stock.
+    """,
+    output_type=FinalCouncilDecision,
 )

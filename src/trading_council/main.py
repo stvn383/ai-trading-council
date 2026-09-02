@@ -7,7 +7,7 @@ from trading_council.agents.ava import ava, ava_reviewer
 from trading_council.agents.betsy import betsy, betsy_reviewer
 from trading_council.agents.camila import camila, camila_reviewer
 from trading_council.agents.models import ResearchSession
-from trading_council.agents.council import council
+from trading_council.agents.council import council, final_council
 
 load_dotenv()
 
@@ -50,10 +50,6 @@ async def main():
         betsy=betsy_result,
         camila=camila_result,
     )
-
-    #print_proposal(session.ava)
-    #print_proposal(session.betsy)
-    #print_proposal(session.camila)
 
     council_prompt = f"""
     Review the following independent investment research from Ava, Betsy,
@@ -189,6 +185,39 @@ async def main():
     print("\n\nCAMILA FINAL PORTFOLIO")
     print("=" * 60)
     print(camila_final.model_dump_json(indent=2))
+
+    final_council_prompt = f"""
+    Evaluate the three analysts' final portfolios and select the stocks that
+    should make up the final paper trading portfolio.
+
+    Ava's final portfolio:
+    {ava_final.model_dump_json(indent=2)}
+
+    Betsy's final portfolio:
+    {betsy_final.model_dump_json(indent=2)}
+
+    Camila's final portfolio:
+    {camila_final.model_dump_json(indent=2)}
+
+    Select between five and ten stocks.
+
+    Do not simply choose the stocks that appear most frequently. Consider
+    portfolio diversification, risk, valuation, growth, and whether each
+    holding adds something meaningful to the overall portfolio.
+
+    Provide reasoning for every selected stock.
+    """
+
+    final_council_result = await Runner.run(
+        final_council,
+        final_council_prompt,
+    )
+
+    final_decision = final_council_result.final_output
+
+    print("\n\nFINAL COUNCIL DECISION")
+    print("=" * 60)
+    print(final_decision.model_dump_json(indent=2))    
 
 if __name__ == "__main__":
     asyncio.run(main())
