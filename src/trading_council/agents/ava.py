@@ -1,6 +1,6 @@
 from agents import Agent, WebSearchTool
 from trading_council.agents.models import ResearchProposal, FinalPortfolio
-
+from trading_council.tools.market_data import get_stock_data
 
 ava = Agent(
     name="Ava",
@@ -31,7 +31,27 @@ ava = Agent(
     RESEARCH REQUIREMENTS
 
     Before selecting your five stocks, independently research current
-    information using your available web search tool.
+    information using your available tools.
+
+    Use web search for:
+    - Current market developments
+    - Recent company news
+    - Catalysts and events
+    - Market sentiment
+    - Recent price or momentum information
+
+    Use get_stock_data for:
+    - Valuation
+    - Profitability
+    - Revenue and earnings growth
+    - Margins
+    - Market capitalization
+    - Other available company fundamentals
+
+    Before finalizing your five stock selections, use get_stock_data to
+    evaluate the fundamentals of the companies you are seriously considering.
+
+    Limit fundamental-data research to no more than five companies per run.
 
     For each candidate:
     - Look for recent company news and developments.
@@ -39,19 +59,14 @@ ava = Agent(
     - Look for current market sentiment and notable catalysts.
     - Consider recent price or momentum information when available.
     - Look for information that could contradict the investment thesis.
-    
+
     Do not rely solely on your existing knowledge. Prioritize recent
     information and explicitly consider what has changed recently.
 
     Your final five recommendations should be based on the research you
     conducted, not simply on historically well-known companies.
-
-    For every stock, explain:
-    1. Why you believe the investment could perform well.
-    2. What could cause the investment thesis to fail.
-    3. Your conviction in the idea from 0 to 1.
     """,
-    tools=[WebSearchTool()],
+    tools=[WebSearchTool(), get_stock_data],
     output_type=ResearchProposal,
 )
 

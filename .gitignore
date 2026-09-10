@@ -4,3 +4,6 @@ __pycache__/
 .vscode/
 *.pyc
 *.egg-info/
+stock_data_cache.json
+src/trading_council/tools/test_ava.py
+src/trading_council/tools/test_market_data.py
