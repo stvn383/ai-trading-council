@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import threading
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -12,6 +13,13 @@ load_dotenv()
 
 CACHE_FILE = Path("stock_data_cache.json")
 CACHE_DURATION = timedelta(hours=24)
+API_CALL_INTERVAL = 1.1
+TICKER_ALIASES = {
+    "BRK.B": "BRK-B",
+}
+
+_market_data_lock = threading.Lock()
+_last_api_call = 0.0
 
 
 def load_cache() -> dict:
@@ -28,8 +36,12 @@ def save_cache(cache: dict) -> None:
 
 
 def fetch_stock_data(ticker: str) -> dict:
-    ticker = ticker.upper()
+    global _last_api_call
 
+    ticker = ticker.upper()
+    ticker = TICKER_ALIASES.get(ticker, ticker)
+    
+    # First cache check — fast path
     cache = load_cache()
 
     if ticker in cache:
@@ -39,52 +51,77 @@ def fetch_stock_data(ticker: str) -> dict:
             print(f"Using cached data for {ticker}")
             return cache[ticker]["data"]
 
-    print(f"Calling Alpha Vantage for {ticker}")
+    # Only one uncached market-data request can happen at a time
+    with _market_data_lock:
 
-    api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
+        # Check cache again in case another agent fetched it
+        # while this request was waiting for the lock
+        cache = load_cache()
 
-    if not api_key:
-        raise ValueError("ALPHA_VANTAGE_API_KEY is not set")
+        if ticker in cache:
+            cached_time = datetime.fromisoformat(cache[ticker]["timestamp"])
 
-    url = "https://www.alphavantage.co/query"
+            if datetime.now() - cached_time < CACHE_DURATION:
+                print(f"Using cached data for {ticker}")
+                return cache[ticker]["data"]
 
-    params = {
-        "function": "OVERVIEW",
-        "symbol": ticker,
-        "apikey": api_key,
-    }
+        api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
 
-    time.sleep(1.1)
+        if not api_key:
+            raise ValueError("ALPHA_VANTAGE_API_KEY is not set")
 
-    response = requests.get(url, params=params, timeout=10)
+        url = "https://www.alphavantage.co/query"
 
-    print("HTTP status:", response.status_code)
-    print("Raw response:", response.text)
+        params = {
+            "function": "OVERVIEW",
+            "symbol": ticker,
+            "apikey": api_key,
+        }
 
-    response.raise_for_status()
+        # Enforce spacing between Alpha Vantage requests
+        elapsed = time.monotonic() - _last_api_call
 
-    data = response.json()
+        if elapsed < API_CALL_INTERVAL:
+            time.sleep(API_CALL_INTERVAL - elapsed)
 
-    if not data:
-        raise ValueError(f"No data returned for {ticker}")
+        print(f"Calling Alpha Vantage for {ticker}")
 
-    if "Note" in data:
-        raise RuntimeError(f"Alpha Vantage rate limit: {data['Note']}")
+        response = requests.get(
+            url,
+            params=params,
+            timeout=10,
+        )
 
-    if "Information" in data:
-        raise RuntimeError(f"Alpha Vantage message: {data['Information']}")
+        _last_api_call = time.monotonic()
 
-    if "Error Message" in data:
-        raise ValueError(f"Invalid ticker: {ticker}")
+        response.raise_for_status()
 
-    cache[ticker] = {
-        "timestamp": datetime.now().isoformat(),
-        "data": data,
-    }
+        data = response.json()
 
-    save_cache(cache)
+        if not data:
+            raise ValueError(f"No data returned for {ticker}")
 
-    return data
+        if "Note" in data:
+            raise RuntimeError(
+                f"Alpha Vantage rate limit: {data['Note']}"
+            )
+
+        if "Information" in data:
+            raise RuntimeError(
+                f"Alpha Vantage message: {data['Information']}"
+            )
+
+        if "Error Message" in data:
+            raise ValueError(f"Invalid ticker: {ticker}")
+
+        cache[ticker] = {
+            "timestamp": datetime.now().isoformat(),
+            "data": data,
+        }
+
+        save_cache(cache)
+
+        return data
 
 
 @function_tool

@@ -45,6 +45,10 @@ async def main():
         research(camila, prompt),
     )
 
+    print_proposal(ava_result)
+    print_proposal(betsy_result)
+    print_proposal(camila_result)
+
     session = ResearchSession(
         ava=ava_result,
         betsy=betsy_result,
@@ -73,7 +77,7 @@ async def main():
     - Risks that may have been overlooked.
     - Which stocks you believe deserve consideration for the final portfolio.
 
-    Then produce your final CouncilDecision.
+    Produce your structured council assessment.
     """
 
     council_result = await Runner.run(
@@ -164,7 +168,11 @@ async def main():
     Clearly explain which stocks you changed, if any, and why.
     """
 
-    ava_revision_result, betsy_revision_result, camila_revision_result = await asyncio.gather(
+    (
+        ava_revision_result,
+        betsy_revision_result,
+        camila_revision_result,
+    ) = await asyncio.gather(
         Runner.run(ava_reviewer, ava_revision_prompt),
         Runner.run(betsy_reviewer, betsy_revision_prompt),
         Runner.run(camila_reviewer, camila_revision_prompt),
@@ -205,6 +213,10 @@ async def main():
     portfolio diversification, risk, valuation, growth, and whether each
     holding adds something meaningful to the overall portfolio.
 
+    Assign a portfolio weight to every selected stock.
+
+    All portfolio weights must sum to exactly 1.0.
+
     Provide reasoning for every selected stock.
     """
 
@@ -217,7 +229,8 @@ async def main():
 
     print("\n\nFINAL COUNCIL DECISION")
     print("=" * 60)
-    print(final_decision.model_dump_json(indent=2))    
+    print(final_decision.model_dump_json(indent=2))
+
 
 if __name__ == "__main__":
     asyncio.run(main())

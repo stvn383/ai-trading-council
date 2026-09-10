@@ -63,6 +63,9 @@ ava = Agent(
     Do not rely solely on your existing knowledge. Prioritize recent
     information and explicitly consider what has changed recently.
 
+    Use web search results as evidence for your analysis, but do not include
+    URLs, citations, source markers, or links in your final structured output.
+        
     Your final five recommendations should be based on the research you
     conducted, not simply on historically well-known companies.
     """,
